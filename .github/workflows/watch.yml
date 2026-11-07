@@ -1,1 +1,27 @@
-
+name: Watch SIS results
+on:
+  schedule:
+    - cron: "*/20 * * * *"   # every 20 minutes (GitHub may delay runs a bit)
+  workflow_dispatch:
+concurrency: watch
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/restore@v4
+        with:
+          path: state.json
+          key: sis-state-${{ github.run_id }}
+          restore-keys: sis-state-
+      - run: python3 monitor.py
+        env:
+          SIS_USER: ${{ secrets.SIS_USER }}
+          SIS_PASS: ${{ secrets.SIS_PASS }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+      - uses: actions/cache/save@v4
+        if: success()
+        with:
+          path: state.json
+          key: sis-state-${{ github.run_id }}
